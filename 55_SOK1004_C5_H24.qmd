@@ -1,0 +1,166 @@
+---
+title: "SOK-1004 H24 - Case 5"
+author: "55"
+format: pdf
+editor: visual
+echo: false
+---
+
+# Instruksjoner
+
+Denne oppgaven er laget av Even S. Hvinden og oppdatert av Derek J. Clark. Sistnevnte er ansvarlig for eventuelle feil og mangler.
+
+Oppgaven skal løses interaktivt i RStudio ved å legge inn egen kode og kommentarer. Det ferdige dokumentet lagres med kandidatnummeret som navn `[kandidatnummer]_SOK1004_C5_H24.qmd` og lastes opp på deres GitHub-side. Hvis du har kandidatnummer 43, så vil filen hete `43_SOK1004_C5_H24.qmd`. Påse at koden kjører og at dere kan eksportere besvarelsen til pdf. Lever så lenken til GitHub-repositoriumet i Canvas.
+
+# Bakgrunn, læringsmål
+
+I Forelesning 7 leste dere [kapittel 1 i NOU 2015:1](https://www.regjeringen.no/contentassets/ef2418d9076e4423ab5908689da67700/no/pdfs/nou201520150001000dddpdfs.pdf) "Produktivitet - grunnlag for vekst og velferd." I denne oppgaven skal vi oppdatere tall brukt i analysen. Gjennom arbeidet vil dere repetere de grunnleggende ferdighetene i bruk av API, `tidyverse` og `ggplot` som vi har arbeidet med gjennom kurset. Dere vil også få anledning til å reflektere rundt sammenhengene i nasjonalregnskapet og å grave litt i statistikkbanken hos SSB.
+
+# Last inn pakker
+
+```{r}
+# output | false
+rm(list=ls()) 
+library(tidyverse)
+library(rjstat)
+library(httr)
+library(dplyr)
+library(ggplot2)
+```
+
+# Oppgave I: Timeverksproduktivitet i markedsrettede fastlandsnæringer
+
+Reproduser en oppdatert versjon av Figur 1.1 "Timeverksproduktivitet, markedsrettede fastlandsnæringer" i rapporten. Her er produktivitet målt som bruttoprodukt i markedsrettet produksjon i Fastlands-Norge per timeverk, utenom bolig.
+
+```{r}
+#Data innhenting fra SSB Tabell 09174
+url <- "https://data.ssb.no/api/v0/no/table/09174/"
+
+query <- '{
+  "query": [
+    {
+      "code": "NACE",
+      "selection": {
+        "filter": "vs:NRNaeringPubAgg",
+        "values": [
+          "nr23fn"
+        ]
+      }
+    },
+    {
+      "code": "ContentsCode",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "BruttoprodTimev"
+        ]
+      }
+    },
+    {
+      "code": "Tid",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "1996",
+          "1997",
+          "1998",
+          "1999",
+          "2000",
+          "2001",
+          "2002",
+          "2003",
+          "2004",
+          "2005",
+          "2006",
+          "2007",
+          "2008",
+          "2009",
+          "2010",
+          "2011",
+          "2012",
+          "2013",
+          "2014",
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023"
+        ]
+      }
+    }
+  ],
+  "response": {
+    "format": "json-stat2"
+  }
+}'
+
+hent_indeks.tmp <- url %>%
+  POST(body = query, encode = "json")
+
+df <-  hent_indeks.tmp %>%
+  content("text") %>%
+  fromJSONstat() %>%
+  as_tibble()
+```
+
+## Oppgave Ia
+
+Hvorfor trekker Produktivitetskommisjon fra produksjonen av boligtjenester, offentlig etterspørsel, og inntekter fra olje og gass når de beregner produktivitet?
+
+*\[Svar på oppgave Ia her\]*
+
+Produktivitetskommisjonen ble til for å kartlegge årsaken til svakere produktivitetsvekst og foreslå hvordan man kan forbedre produktiviteten.
+
+Hovedårsaken til at alle disse ikke er inkludert i bregningen er på grunn av deres målbarhet når det kommer til å måle faktisk produktivitet.
+
+Først og fremst er olje og gass ekskludert siden produktiviteten skal være bærekraftig over lang tid og da blir ikke-fornybare energikilder. Slik kan man foreslå langsiktige løsninger til en god produktivitet etter oljen og gassen er slutt på. I tillegg er industrien veldig lønnsom, men det skyldes heller andre faktorer som oljepris eller hvor stor kvantitet man har, istedenfor faktisk produktivitet. Produktivitetskommisjonen sier også at velferden kommer som et resultat av produktivitet i fastlandsøkonomien.
+
+Årsaken til at offentlig etterspørsel ikke er med i beregningen er fordi offentlig sektor er så stort med masse forskjellige mål som gjør det komplekst å optimalisere. En god andel av offentlig sektor tilbyr tjenester som ikke har produktivitet og vekst som mål. Dette betyr ikke at man ikke skal optimalisere og øke produktivitet i offentlig sektor, men at det gjør det vanskelig å måle.
+
+Boligtjenester er ikke med beregningen av like grunner. Det å jobbe i et omsorgsyrke gjør det vasneklig å måle og forbedre produktivitet. Det er ikke noen god måling av selve produktiviteten og andre faktorer påvirker den målbare dataen man kan hente derfra.
+
+## Oppgave Ib
+
+Skriv kode som bruker en JSON-spørring til å lage en oppdatert versjon av figuren, med observasjoner fra 1996 til 2022. Beregn gjennomsnittlig årlig endring for perioden 1996 - 2005 og, 2005-2013, og 2006 - 2022. Står konklusjonen i rapporten seg?
+
+**Merknad.** Det er tidvis store revisjoner i nasjonalregnskapet. Du må regne med at individuelle tall på årlig endring kan avvike en god del, opp til et halvt prosentpoeng, mens de gjennomsnittlige veksttallene burde avvike noe mindre.
+
+**Tips:** Du henter data på timeverk og bruttoprodukt fra henholdsvis tabell 09174 og 09170.
+
+```{r}
+# løs oppgave 1b her
+#Filtrering av data 
+df_filtered <- df %>%
+  filter(år >= 1996, år <= 2022) %>%
+  mutate(Periode = case_when(
+    år >= 1996 & år <= 2005 ~ "1996-2005",
+    år >= 2006 & år <= 2013 ~ "2005-2013",
+    år >= 2006 & år <= 2022 ~ "2006-2022"
+  ))
+
+#Gjennomsnitt for hver periode
+result <- df_filtered %>%
+  group_by(Periode) %>%
+  summarize(Gj.snitt_endring = mean(value, na.rm = TRUE)) %>%
+  arrange(Periode)
+
+print(result)
+```
+
+```{r}
+ggplot(df_filtered, aes(x = år, y = value)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_hline(data = result, aes(yintercept = Gj.snitt_endring, color = Periode), linetype = "dashed") +
+  labs(title = "Vekst i arbeidsproduktivitet", 
+       subtitle = "Markedsrettede fastlandsnæringer",
+       x = "År", y = "Årlig endring i prosent") +
+  theme_minimal() +
+   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_color_manual(values = c("1996-2005" = "red", "2005-2013" = "blue", "2006-2022" = "green"))
+```
+
+Konklusjonen i rapporten er at produktiviteten var på vei nedover. Dette kan figuren understøtte med illustrasjonen av lavere og lavere vekst i arbeidsproduktivitet og lavere gjennomsnitt over den nyligste perioden (2006-2022).
